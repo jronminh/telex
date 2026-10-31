@@ -243,6 +243,10 @@ int main(void)
 	check_word("khongw", "khơng", 0);
 	check_word("banw", "băn", 0);
 	check_word("hoao", "hoao", 0);
+	check_word("goiwj", "gợi", 0);
+	check_word("goiwr", "gởi", 0);
+	check_word("goijw", "gợi", 0);
+	check_word("goiw", "gơi", 0);
 	check_word("gieengs", "giếng", 0);
 	check_word("AS", "Á", 0);
 

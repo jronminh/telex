@@ -51,7 +51,13 @@ khongo   không
 khongof  khồng
 duongwf  dường
 thuongw  thương
+goiwj    gợi
+goiwr    gởi
 ```
+
+One `w` is enough; it targets the last `a/o/u` in the current vowel group,
+even when another vowel follows (`goi` + `w` + `j`). `ww` is not needed.
+
 
 If applying the modifier would not make a plausible syllable, the key stays
 literal: `oeo` is a new vowel, not an `ô` modifier, and `hoao` stays raw.

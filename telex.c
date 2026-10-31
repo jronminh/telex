@@ -189,31 +189,52 @@ static int has_vowel(const Word *w)
 	return 0;
 }
 
-/* the last vowel with this base (plain or marked) anywhere in the word */
-static int find_vowel(const Word *w, int base, int marked)
+static int analyze(const Word *w, const TelexOptions *opt, int *ns, int *ne,
+		   int *tp, int *marked);
+
+/* the last vowel group of the word: [start, end) */
+static void vowel_span(const Word *w, int *start, int *end)
 {
-	for (int i = w->n - 1; i >= 0; i--) {
-		int v = w->l[i].vowel;
-		if (v == base || v == marked)
+	int e = w->n;
+	while (e > 0 && w->l[e - 1].vowel < 0)
+		e--;
+	int s = e;
+	while (s > 0 && w->l[s - 1].vowel >= 0)
+		s--;
+	*start = s;
+	*end = e;
+}
+
+/* the last matching vowel in the vowel group, for a/e/o roofs */
+static int roof_target(const Word *w, int base, int marked)
+{
+	int s, e;
+	vowel_span(w, &s, &e);
+	for (int i = e - 1; i >= s; i--)
+		if (w->l[i].vowel == base || w->l[i].vowel == marked)
 			return i;
-		if (v >= 0)          /* another vowel: this is a new letter */
-			return -1;
-	}
 	return -1;
 }
 
-/* the last a/o/u vowel, for the w hook/breve */
-static int find_hook_vowel(const Word *w)
+/* the last a/o/u vowel in the vowel group, for the w hook/breve */
+static int hook_target(const Word *w)
 {
-	for (int i = w->n - 1; i >= 0; i--) {
+	int s, e;
+	vowel_span(w, &s, &e);
+	for (int i = e - 1; i >= s; i--) {
 		int v = w->l[i].vowel;
 		if (v == V_A || v == V_O || v == V_U ||
 		    v == V_AB || v == V_OH || v == V_UH)
 			return i;
-		if (v >= 0)          /* another vowel: this is a new letter */
-			return -1;
 	}
 	return -1;
+}
+
+/* would the word be a plausible syllable after a trial modifier? */
+static int valid_word(const Word *w, const TelexOptions *opt)
+{
+	int ns, ne, tp, marked;
+	return analyze(w, opt, &ns, &ne, &tp, &marked);
 }
 
 /*
@@ -270,21 +291,18 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 		}
 
 		if (lower == 'w') {
-			int hi = find_hook_vowel(w);
+			int hi = hook_target(w);
 			if (hi >= 0) {
 				Letter *target = &w->l[hi];
-				if (target->vowel == V_A) {
-					target->vowel = V_AB;
-					target->upper |= isupper(ch) != 0;
-					continue;
-				}
-				if (target->vowel == V_O) {
-					target->vowel = V_OH;
-					target->upper |= isupper(ch) != 0;
-					continue;
-				}
-				if (target->vowel == V_U) {
-					target->vowel = V_UH;
+				int new_id = target->vowel == V_A ? V_AB :
+					     target->vowel == V_O ? V_OH :
+					     target->vowel == V_U ? V_UH : -1;
+				if (new_id < 0)
+					continue;   /* already hooked */
+				Word trial = *w;
+				trial.l[hi].vowel = new_id;
+				if (valid_word(&trial, opt)) {
+					target->vowel = new_id;
 					target->upper |= isupper(ch) != 0;
 					continue;
 				}
@@ -301,19 +319,28 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 				      lower == 'e' ? V_E : V_O;
 			int circ_id = lower == 'a' ? V_AC :
 				      lower == 'e' ? V_EC : V_OC;
-			int idx = find_vowel(w, base_id, circ_id);
+			int idx = roof_target(w, base_id, circ_id);
 			if (idx >= 0) {
 				Letter *target = &w->l[idx];
 				if (target->vowel == base_id) {
-					target->vowel = circ_id;
-					target->upper |= isupper(ch) != 0;
-					continue;
+					Word trial = *w;
+					trial.l[idx].vowel = circ_id;
+					if (valid_word(&trial, opt)) {
+						target->vowel = circ_id;
+						target->upper |= isupper(ch) != 0;
+						continue;
+					}
+				} else {
+					/* aaa/eee/ooo: undo the mark and add a
+					 * literal letter, so "booong" -> "boong" */
+					Word trial = *w;
+					trial.l[idx].vowel = base_id;
+					add_letter(&trial, ch);
+					if (valid_word(&trial, opt)) {
+						*w = trial;
+						continue;
+					}
 				}
-				/* aaa/eee/ooo: undo the mark and add a
-				 * literal letter, so "booong" -> "boong" */
-				target->vowel = base_id;
-				add_letter(w, ch);
-				continue;
 			}
 		}
 
