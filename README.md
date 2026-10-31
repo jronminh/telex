@@ -1,5 +1,7 @@
 # telex
 
+[![ci](https://github.com/jronminh/telex/actions/workflows/ci.yml/badge.svg)](https://github.com/jronminh/telex/actions)
+
 A small, pure-C Telex engine for a US keyboard.
 
 Two files (`telex.c`, `telex.h`), no dependency but libc, MIT licensed. Drop
