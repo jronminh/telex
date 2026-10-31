@@ -299,8 +299,14 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 				int new_id = target->vowel == V_A ? V_AB :
 					     target->vowel == V_O ? V_OH :
 					     target->vowel == V_U ? V_UH : -1;
-				if (new_id < 0)
-					continue;   /* already hooked */
+				if (new_id < 0) {
+					/* already hooked: the second w undoes it and
+					 * stays literal, for mixed English input */
+					target->vowel = target->vowel == V_AB ? V_A :
+							target->vowel == V_OH ? V_O : V_U;
+					add_letter(w, ch);
+					continue;
+				}
 				Word trial = *w;
 				trial.l[hi].vowel = new_id;
 				if (valid_word(&trial, opt)) {
@@ -332,16 +338,13 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 						target->upper |= isupper(ch) != 0;
 						continue;
 					}
-				} else {
-					/* aaa/eee/ooo: undo the mark and add a
-					 * literal letter, so "booong" -> "boong" */
-					Word trial = *w;
-					trial.l[idx].vowel = base_id;
-					add_letter(&trial, ch);
-					if (valid_word(&trial, opt)) {
-						*w = trial;
-						continue;
-					}
+				} else if (idx == w->n - 1) {
+					/* in place aaa/eee/ooo: undo the mark and
+					 * add a literal letter; when the roof is
+					 * far away (khoongo), keep it */
+					target->vowel = base_id;
+					add_letter(w, ch);
+					continue;
 				}
 			}
 		}
@@ -352,6 +355,12 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 			    last->vowel < 0) {
 				last->mark = 4;   /* đ */
 				last->upper |= isupper(ch) != 0;
+				continue;
+			}
+			if (last->base == 'd' && last->mark == 4 &&
+			    last->vowel < 0) {
+				last->mark = 0;   /* third d: undd */
+				add_letter(w, ch);
 				continue;
 			}
 			/* a later d can complete an onset d: duwod... -> đ... */
@@ -675,7 +684,11 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 						push_state(next, &nn, &t);
 					} else if (v == V_AB || v == V_OH ||
 						   v == V_UH) {
-						push_state(next, &nn, s);
+						Word t = *s;
+						t.l[k].vowel = v == V_AB ? V_A :
+							      v == V_OH ? V_O : V_U;
+						add_letter(&t, ch);
+						push_state(next, &nn, &t);
 					}
 				}
 				if (s->n == 0 && opt->w_at_begin) {

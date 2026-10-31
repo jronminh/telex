@@ -65,9 +65,29 @@ khongfo  khồng
 goiwj ys gợi ý
 ```
 
-A word boundary (space or punctuation) is still required: `goiwjys` is one
-invalid word, so it stays raw. A modifier after the boundary does not reach
-back into the previous word (`khong o` stays `khong o`).
+A word boundary (space or punctuation) is still required; a modifier after
+the boundary does not reach back into the previous word (`khong o` stays
+`khong o`).
+
+## Mixed English/Vietnamese
+
+A repeated modifier is the escape for its literal key, and also undoes a mark
+you did not want:
+
+```text
+uww   uw          aww   aw          oww   ow
+aaa   aa          ooo   oo          ddd   dd
+ass   as          aff   af
+```
+
+So the second `w` must undo the hook and stay a literal `w`, not stay `ư`;
+otherwise English words such as `uw`, `aw`, `ow` are impossible to type
+without switching the input method off. This is also the editing rule: type
+the modifier again to take it back.
+
+An `o` repeated **in place** toggles the roof (`booong` → `boong`), but an
+`o` after a coda stays literal and leaves the existing roof alone:
+`khoongo` → `khôngo`.
 
 In vnime this is the word the engine is composing; moving the caret with
 arrow keys ends it. Mouse-clicking into an older word is not tracked by the
