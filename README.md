@@ -6,10 +6,17 @@ caller decides how to deliver that word.
 
 ```sh
 make check
+make stress                    # every phonotactic shape x key orders
 echo 'tieengs vieetj dduowngf' | ./telex
 # tiếng việt đường
 ./telex -m < keys.txt          # hoà/khoẻ/thuỷ tone style
 ```
+
+`make stress` builds every syllable the Vietnamese spelling allows (onset x
+rhyme x tone, meaningless words included), keeps the 10 000 longest, and
+converts each one from every key sequence that spells it: free modifier
+order, free tone position, uppercase. The 58 000 checks must all agree with
+the canonical spelling.
 
 ## API
 

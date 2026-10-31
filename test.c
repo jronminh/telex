@@ -300,6 +300,9 @@ int main(void)
 	check_word("us", "ú", 0);
 	/* free-order stress cases found by fuzzing */
 	check_word("phuaws", "phứa", 0);
+	check_word("choaos", "choáo", 0);
+	check_word("choaof", "choào", 0);
+	check_word("doaod", "đoao", 0);
 	check_word("luoxiww", "lưỡi", 0);
 	check_word("diender", "điển", 0);
 	check_word("buowuws", "bướu", 0);

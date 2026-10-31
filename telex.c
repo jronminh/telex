@@ -75,7 +75,8 @@ static const char *const NUCLEI[] = {
 	"ai", "ao", "au", "ay", "cu", "cy", "eo", "fu", "ia", "if", "iu",
 	"oa", "ob", "oe", "oi", "pi", "qi", "ua", "uc", "uf", "ui",
 	"up", "uq", "uy", "va", "vi", "vu", "vq", "yf", "oo",
-	"ifu", "oai", "oay", "oeo", "ucy", "upi", "uya", "uyf", "uyu",
+	"ifu", "oai", "oao", "oay", "oeo", "ucy", "upi", "uya", "uyf",
+	"uyu",
 	"vqi", "vqu", "yfu", NULL
 };
 
@@ -572,7 +573,10 @@ static int render(const Word *w, int tone_pos, char *out, size_t outsz)
  * letter in the word, and a key may also stay literal.  At the end the most
  * marked valid state wins; if none is valid, the caller keeps the raw keys.
  */
-#define MAX_STATES 2048
+#define MAX_STATES 512
+/* cap on state comparisons: a pathological key sequence must never stall
+ * the input method for long */
+#define SEARCH_BUDGET 200000
 
 static bool same_state(const Word *a, const Word *b)
 {
@@ -587,13 +591,15 @@ static bool same_state(const Word *a, const Word *b)
 	return true;
 }
 
-static void push_state(Word *states, int *count, const Word *w)
+static void push_state(Word *states, int *count, const Word *w, int *budget)
 {
-	if (*count >= MAX_STATES)
+	if (*count >= MAX_STATES || *budget <= 0)
 		return;
-	for (int i = 0; i < *count; i++)
+	for (int i = 0; i < *count; i++) {
+		*budget -= 1 + w->n / 4;
 		if (same_state(&states[i], w))
 			return;
+	}
 	states[(*count)++] = *w;
 }
 
@@ -633,6 +639,7 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 	}
 
 	int nc = 1;
+	int budget = SEARCH_BUDGET;
 	memset(&cur[0], 0, sizeof cur[0]);
 	cur[0].tone_raw = -1;
 
@@ -651,21 +658,21 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 						Word t = *s;
 						t.tone = 0;
 						t.tone_raw = -1;
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					}
 					Word t = *s;
 					add_letter(&t, ch);
-					push_state(next, &nn, &t);
+					push_state(next, &nn, &t, &budget);
 				} else {
 					if (has_vowel(s)) {
 						Word t = *s;
 						t.tone = tone;
 						t.tone_raw = -1;
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					}
 					Word t = *s;
 					add_letter(&t, ch);
-					push_state(next, &nn, &t);
+					push_state(next, &nn, &t, &budget);
 				}
 				continue;
 			}
@@ -682,24 +689,24 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 						Word t = *s;
 						t.l[k].vowel = nid;
 						t.l[k].upper |= isupper(ch) != 0;
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					} else if (v == V_AB || v == V_OH ||
 						   v == V_UH) {
 						Word t = *s;
 						t.l[k].vowel = v == V_AB ? V_A :
 							      v == V_OH ? V_O : V_U;
 						add_letter(&t, ch);
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					}
 				}
 				if (s->n == 0 && opt->w_at_begin) {
 					Word t = *s;
 					add_vowel(&t, V_UH, isupper(ch) != 0);
-					push_state(next, &nn, &t);
+					push_state(next, &nn, &t, &budget);
 				}
 				Word t = *s;
 				add_letter(&t, ch);
-				push_state(next, &nn, &t);
+				push_state(next, &nn, &t, &budget);
 				continue;
 			}
 
@@ -716,17 +723,17 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 						Word t = *s;
 						t.l[k].vowel = circ;
 						t.l[k].upper |= isupper(ch) != 0;
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					} else if (v == circ) {
 						Word t = *s;
 						t.l[k].vowel = base;
 						add_letter(&t, ch);
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					}
 				}
 				Word t = *s;
 				add_letter(&t, ch);
-				push_state(next, &nn, &t);
+				push_state(next, &nn, &t, &budget);
 				continue;
 			}
 
@@ -739,7 +746,7 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 						t.l[t.n - 1].mark = 4;
 						t.l[t.n - 1].upper |=
 							isupper(ch) != 0;
-						push_state(next, &nn, &t);
+						push_state(next, &nn, &t, &budget);
 					}
 				}
 				int v0 = 0;
@@ -752,11 +759,11 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 					Word t = *s;
 					t.l[k].mark = 4;
 					t.l[k].upper |= isupper(ch) != 0;
-					push_state(next, &nn, &t);
+					push_state(next, &nn, &t, &budget);
 				}
 				Word t = *s;
 				add_letter(&t, ch);
-				push_state(next, &nn, &t);
+				push_state(next, &nn, &t, &budget);
 				continue;
 			}
 
@@ -765,19 +772,24 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 			    s->l[s->n - 1].vowel == V_UH) {
 				Word t = *s;
 				add_vowel(&t, V_OH, isupper(ch) != 0);
-				push_state(next, &nn, &t);
+				push_state(next, &nn, &t, &budget);
 			}
 			Word t = *s;
 			add_letter(&t, ch);
-			push_state(next, &nn, &t);
+			push_state(next, &nn, &t, &budget);
 		}
 
 		Word *tmp = cur;
 		cur = next;
 		next = tmp;
 		nc = nn;
-		if (nc == 0)
+		if (nc == 0 || budget <= 0)
 			break;
+	}
+	if (budget <= 0) {
+		free(cur);
+		free(next);
+		return false;
 	}
 
 	int best_score = -1000000;

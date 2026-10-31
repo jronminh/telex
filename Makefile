@@ -13,7 +13,10 @@ test: telex.c test.c telex.h
 check: test
 	./test
 
+stress: telex.c telex.h stress.py
+	python3 stress.py
+
 clean:
 	rm -f telex test
 
-.PHONY: all check clean
+.PHONY: all check stress clean
