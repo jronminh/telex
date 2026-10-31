@@ -41,9 +41,10 @@ contains a Vietnamese mark. `telex_backspace()` edits the current word.
 
 ## Modifier order
 
-A modifier does not have to touch the vowel it completes. The engine looks
-back through the syllable for the matching vowel (stopping at another vowel),
-so all of these complete the same word:
+A modifier does not have to touch the vowel it completes. The engine keeps
+the current word's raw keys until a space/punctuation boundary; any later
+valid modifier key can complete an earlier letter in that word, at any
+distance. These all complete the same word:
 
 ```text
 khoong   không
@@ -54,11 +55,19 @@ thuongw  thương
 goiwj    gợi
 goiwr    gởi
 duwodjc  được
+duwocdj  được
+duwjodc  được
+khongfo  khồng
 goiwj ys gợi ý
 ```
 
 A word boundary (space or punctuation) is still required: `goiwjys` is one
-invalid word, so it stays raw.
+invalid word, so it stays raw. A modifier after the boundary does not reach
+back into the previous word (`khong o` stays `khong o`).
+
+In vnime this is the word the engine is composing; moving the caret with
+arrow keys ends it. Mouse-clicking into an older word is not tracked by the
+engine (use `preedit=on` if that matters).
 
 The last example is deliberately out of order: `w` hooks the `u`, the `o`
 next to the now-hooked `ư` becomes `ơ`, the later `d` completes the onset
