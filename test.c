@@ -247,6 +247,14 @@ int main(void)
 	check_word("goiwr", "gởi", 0);
 	check_word("goijw", "gợi", 0);
 	check_word("goiw", "gơi", 0);
+	check_word("duwodjc", "được", 0);
+	check_word("duwocj", "dược", 0);
+	check_word("dduowcj", "được", 0);
+	check_word("duowcj", "dược", 0);
+	check_word("uwo", "ươ", 0);
+	check_word("tuwoi", "tươi", 0);
+	check_word("duwongf", "dường", 0);
+	check_word("dad", "đa", 0);
 	check_word("gieengs", "giếng", 0);
 	check_word("AS", "Á", 0);
 

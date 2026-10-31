@@ -352,9 +352,33 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 				last->upper |= isupper(ch) != 0;
 				continue;
 			}
+			/* a later d can complete an onset d: duwod... -> đ... */
+			int v0 = 0;
+			while (v0 < w->n && w->l[v0].vowel < 0)
+				v0++;
+			for (int i = 0; i < v0; i++) {
+				if (w->l[i].base != 'd' || w->l[i].mark != 0)
+					continue;
+				Word trial = *w;
+				trial.l[i].mark = 4;
+				if (valid_word(&trial, opt)) {
+					w->l[i].mark = 4;
+					w->l[i].upper |= isupper(ch) != 0;
+					goto next_key;
+				}
+				break;
+			}
+		}
+
+		/* ư + o is ươ; the o is not a separate vowel */
+		if (lower == 'o' && w->n > 0 && w->l[w->n - 1].vowel == V_UH) {
+			add_vowel(w, V_OH, isupper(ch) != 0);
+			continue;
 		}
 
 		add_letter(w, ch);
+next_key:
+		;
 	}
 
 	/*

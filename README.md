@@ -53,7 +53,13 @@ duongwf  dường
 thuongw  thương
 goiwj    gợi
 goiwr    gởi
+duwodjc  được
 ```
+
+The last example is deliberately out of order: `w` hooks the `u`, the `o`
+next to the now-hooked `ư` becomes `ơ`, the later `d` completes the onset
+`d` to `đ`, and `j` is the tone. The engine tries a completion and keeps it
+only if the syllable is valid; otherwise the key is a literal letter.
 
 One `w` is enough; it targets the last `a/o/u` in the current vowel group,
 even when another vowel follows (`goi` + `w` + `j`). `ww` is not needed.
