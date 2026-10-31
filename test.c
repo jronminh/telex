@@ -263,6 +263,20 @@ int main(void)
 	check_word("hoanw", "hoăn", 0);
 	check_word("dadj", "đạ", 0);
 	check_word("goiwjys", "goiwjys", 0);
+	check_word("duowng", "dương", 0);
+	check_word("duongw", "dương", 0);
+	check_word("duwong", "dương", 0);
+	check_word("duongwf", "dường", 0);
+	check_word("quyeen", "quyên", 0);
+	check_word("quyene", "quyên", 0);
+	check_word("quyenef", "quyền", 0);
+	check_word("dduowmj", "đượm", 0);
+	check_word("duwomjd", "đượm", 0);
+	check_word("dduowmjg", "dduowmjg", 0);
+	check_word("af", "à", 0);
+	check_word("uf", "ù", 0);
+	check_word("uwf", "ừ", 0);
+	check_word("us", "ú", 0);
 	check_word("gieengs", "giếng", 0);
 	check_word("AS", "Á", 0);
 
@@ -291,6 +305,8 @@ int main(void)
 	check_line("tieengs vieetj", "tiếng việt", 0);
 	check_line("goiwj ys", "gợi ý", 0);
 	check_line("khong o", "khong o", 0);
+	check_line("af us", "à ú", 0);
+	check_line("af uwf", "à ừ", 0);
 
 	check_api();
 
