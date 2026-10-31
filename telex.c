@@ -25,6 +25,8 @@
 #include "telex.h"
 
 #include <ctype.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* vowel ids */
@@ -550,6 +552,240 @@ static int render(const Word *w, int tone_pos, char *out, size_t outsz)
 	return (int)k;
 }
 
+
+/*
+ * Fallback search for free modifier order.
+ *
+ * The left-to-right parser is deterministic and fast for the normal case.
+ * When it cannot make a valid syllable, try the ambiguous readings of the
+ * modifier keys together: every w/roof/d/tone may complete any matching
+ * letter in the word, and a key may also stay literal.  At the end the most
+ * marked valid state wins; if none is valid, the caller keeps the raw keys.
+ */
+#define MAX_STATES 2048
+
+static bool same_state(const Word *a, const Word *b)
+{
+	if (a->n != b->n || a->tone != b->tone)
+		return false;
+	for (int i = 0; i < a->n; i++) {
+		const Letter *x = &a->l[i], *y = &b->l[i];
+		if (x->vowel != y->vowel || x->mark != y->mark ||
+		    x->base != y->base || x->upper != y->upper)
+			return false;
+	}
+	return true;
+}
+
+static void push_state(Word *states, int *count, const Word *w)
+{
+	if (*count >= MAX_STATES)
+		return;
+	for (int i = 0; i < *count; i++)
+		if (same_state(&states[i], w))
+			return;
+	states[(*count)++] = *w;
+}
+
+static int state_score(const Word *w)
+{
+	int score = w->tone ? 100 : 0;
+	for (int i = 0; i < w->n; i++) {
+		if (w->l[i].vowel >= 0 && is_marked_id(w->l[i].vowel))
+			score += 50;
+		if (w->l[i].base == 'd' && w->l[i].mark == 4)
+			score += 50;
+	}
+	return score - w->n;
+}
+
+/* tone-only raw words (ass, aff) must stay raw, not be re-read as á/à;
+ * the fallback is for free w/roof/d order. */
+static bool needs_search(const char *keys, int n)
+{
+	for (int i = 0; i < n; i++) {
+		int c = tolower((unsigned char)keys[i]);
+		if (c == 'w' || c == 'd')
+			return true;
+	}
+	return false;
+}
+
+static bool search_word(const char *keys, int n, const TelexOptions *opt,
+			Word *best, int *best_tp)
+{
+	Word *cur = malloc(MAX_STATES * sizeof *cur);
+	Word *next = malloc(MAX_STATES * sizeof *next);
+	if (!cur || !next) {
+		free(cur);
+		free(next);
+		return false;
+	}
+
+	int nc = 1;
+	memset(&cur[0], 0, sizeof cur[0]);
+	cur[0].tone_raw = -1;
+
+	for (int i = 0; i < n; i++) {
+		int ch = (unsigned char)keys[i];
+		int lower = tolower(ch);
+		int tone = tone_value(lower);
+		int nn = 0;
+
+		for (int j = 0; j < nc; j++) {
+			Word *s = &cur[j];
+
+			if (tone >= 0) {
+				if (tone == 0) {
+					if (s->tone) {
+						Word t = *s;
+						t.tone = 0;
+						t.tone_raw = -1;
+						push_state(next, &nn, &t);
+					}
+					Word t = *s;
+					add_letter(&t, ch);
+					push_state(next, &nn, &t);
+				} else {
+					if (has_vowel(s)) {
+						Word t = *s;
+						t.tone = tone;
+						t.tone_raw = -1;
+						push_state(next, &nn, &t);
+					}
+					Word t = *s;
+					add_letter(&t, ch);
+					push_state(next, &nn, &t);
+				}
+				continue;
+			}
+
+			if (lower == 'w') {
+				int start, end;
+				vowel_span(s, &start, &end);
+				for (int k = end - 1; k >= start; k--) {
+					int v = s->l[k].vowel;
+					int nid = v == V_A ? V_AB :
+						  v == V_O ? V_OH :
+						  v == V_U ? V_UH : -1;
+					if (nid >= 0) {
+						Word t = *s;
+						t.l[k].vowel = nid;
+						t.l[k].upper |= isupper(ch) != 0;
+						push_state(next, &nn, &t);
+					} else if (v == V_AB || v == V_OH ||
+						   v == V_UH) {
+						push_state(next, &nn, s);
+					}
+				}
+				if (s->n == 0 && opt->w_at_begin) {
+					Word t = *s;
+					add_vowel(&t, V_UH, isupper(ch) != 0);
+					push_state(next, &nn, &t);
+				}
+				Word t = *s;
+				add_letter(&t, ch);
+				push_state(next, &nn, &t);
+				continue;
+			}
+
+			if (lower == 'a' || lower == 'e' || lower == 'o') {
+				int base = lower == 'a' ? V_A :
+					   lower == 'e' ? V_E : V_O;
+				int circ = lower == 'a' ? V_AC :
+					   lower == 'e' ? V_EC : V_OC;
+				int start, end;
+				vowel_span(s, &start, &end);
+				for (int k = end - 1; k >= start; k--) {
+					int v = s->l[k].vowel;
+					if (v == base) {
+						Word t = *s;
+						t.l[k].vowel = circ;
+						t.l[k].upper |= isupper(ch) != 0;
+						push_state(next, &nn, &t);
+					} else if (v == circ) {
+						Word t = *s;
+						t.l[k].vowel = base;
+						add_letter(&t, ch);
+						push_state(next, &nn, &t);
+					}
+				}
+				Word t = *s;
+				add_letter(&t, ch);
+				push_state(next, &nn, &t);
+				continue;
+			}
+
+			if (lower == 'd') {
+				if (s->n > 0) {
+					Letter *last = &s->l[s->n - 1];
+					if (last->base == 'd' && last->mark == 0 &&
+					    last->vowel < 0) {
+						Word t = *s;
+						t.l[t.n - 1].mark = 4;
+						t.l[t.n - 1].upper |=
+							isupper(ch) != 0;
+						push_state(next, &nn, &t);
+					}
+				}
+				int v0 = 0;
+				while (v0 < s->n && s->l[v0].vowel < 0)
+					v0++;
+				for (int k = 0; k < v0; k++) {
+					if (s->l[k].base != 'd' ||
+					    s->l[k].mark != 0)
+						continue;
+					Word t = *s;
+					t.l[k].mark = 4;
+					t.l[k].upper |= isupper(ch) != 0;
+					push_state(next, &nn, &t);
+				}
+				Word t = *s;
+				add_letter(&t, ch);
+				push_state(next, &nn, &t);
+				continue;
+			}
+
+			/* literal letter; o after ư may pair to ơ */
+			if (lower == 'o' && s->n > 0 &&
+			    s->l[s->n - 1].vowel == V_UH) {
+				Word t = *s;
+				add_vowel(&t, V_OH, isupper(ch) != 0);
+				push_state(next, &nn, &t);
+			}
+			Word t = *s;
+			add_letter(&t, ch);
+			push_state(next, &nn, &t);
+		}
+
+		Word *tmp = cur;
+		cur = next;
+		next = tmp;
+		nc = nn;
+		if (nc == 0)
+			break;
+	}
+
+	int best_score = -1000000;
+	int best_idx = -1;
+	for (int i = 0; i < nc; i++) {
+		int ns, ne, tp, marked;
+		if (!analyze(&cur[i], opt, &ns, &ne, &tp, &marked))
+			continue;
+		int score = state_score(&cur[i]);
+		if (score > best_score) {
+			best_score = score;
+			best_idx = i;
+			*best_tp = tp;
+		}
+	}
+	if (best_idx >= 0)
+		*best = cur[best_idx];
+	free(cur);
+	free(next);
+	return best_idx >= 0;
+}
+
 int telex_convert(const char *keys, int n, const TelexOptions *opt,
 		  char *out, size_t outsz, int *marked)
 {
@@ -560,6 +796,20 @@ int telex_convert(const char *keys, int n, const TelexOptions *opt,
 		return -1;
 	parse_word(keys, n, opt, &w);
 	if (!analyze(&w, opt, &ns, &ne, &tp, &m)) {
+		Word best;
+		int best_tp = 0;
+		if (needs_search(keys, n) &&
+		    search_word(keys, n, opt, &best, &best_tp)) {
+			int bns, bne, btp, bm;
+			if (analyze(&best, opt, &bns, &bne, &btp, &bm)) {
+				int len = render(&best, btp, out, outsz);
+				if (len >= 0) {
+					if (marked)
+						*marked = bm;
+					return len;
+				}
+			}
+		}
 		size_t k = 0;
 		for (int i = 0; i < n; i++) {
 			if (w.drop[i])

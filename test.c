@@ -277,6 +277,17 @@ int main(void)
 	check_word("uf", "ù", 0);
 	check_word("uwf", "ừ", 0);
 	check_word("us", "ú", 0);
+	/* free-order stress cases found by fuzzing */
+	check_word("phuaws", "phứa", 0);
+	check_word("luoxiww", "lưỡi", 0);
+	check_word("diender", "điển", 0);
+	check_word("buowuws", "bướu", 0);
+	check_word("duorido", "đuổi", 0);
+	check_word("chuyus", "chuýu", 0);
+	check_word("suwowuf", "sườu", 0);
+	check_word("giees", "giế", 0);
+	check_word("ruychs", "ruých", 0);
+	check_word("myns", "mýn", 0);
 	check_word("gieengs", "giếng", 0);
 	check_word("AS", "Á", 0);
 

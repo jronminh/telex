@@ -81,6 +81,12 @@ even when another vowel follows (`goi` + `w` + `j`). `ww` is not needed.
 If applying the modifier would not make a plausible syllable, the key stays
 literal: `oeo` is a new vowel, not an `ô` modifier, and `hoao` stays raw.
 
+When the left-to-right pass cannot make a valid syllable, a small fallback
+search tries all readings of the modifier keys together (each `w`, roof, `d`
+or tone may complete a different letter, or stay literal) and picks the most
+marked valid syllable. This is what handles hard out-of-order inputs such as
+`phuaws` → phứa, `luoxiww` → lưỡi, `diender` → điển, `buowuws` → bướu.
+
 
 ## Limits
 
