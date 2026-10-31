@@ -23,6 +23,38 @@ converts each one from every key sequence that spells it: free modifier
 order, free tone position, uppercase. The 58 000 checks must all agree with
 the canonical spelling.
 
+## In an input method
+
+The engine only produces the word; the frontend decides how it reaches the
+application.  `examples/im-loop.c` is that frontend in about a hundred lines,
+runnable on its own:
+
+```sh
+make im-loop
+printf 'tieengs vieetj dduowngf\n' | ./examples/im-loop
+# tiếng việt đường
+```
+
+The whole model is four cases:
+
+```text
+letter        telex_key()       backspace the changed suffix, commit the new bytes
+Backspace     telex_backspace() same, or pass it through when the word is empty
+space/punct   telex_flush()     commit the word, then the key itself
+```
+
+`./examples/im-loop -v` traces every backspace/commit pair.
+
+For real use, `emit_backspace()` and `emit_text()` become events on a virtual
+keyboard and `zwp_input_method_v2_commit_string()`.  The working Wayland
+frontend built on this engine is
+[vnime](https://github.com/jronminh/q509-desktop/tree/main/vnime): it grabs
+the keyboard on a sway/wlroots seat, applies Telex to every keyboard (internal,
+USB, Bluetooth, on-screen), and forwards the keys it does not consume.
+
+On X11 (i3) there is no `input-method-v2`: the same engine goes into an XIM
+server, an fcitx5/ibus engine, or a uinput remapper instead.
+
 ## Using it in another project
 
 ```sh

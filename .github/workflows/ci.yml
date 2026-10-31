@@ -13,3 +13,7 @@ jobs:
         run: make check
       - name: phonotactic stress test
         run: make stress
+      - name: input-method example
+        run: |
+          make im-loop
+          printf 'tieengs vieetj\n' | ./examples/im-loop | grep -qx 'tiếng việt' 

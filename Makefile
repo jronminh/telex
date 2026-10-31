@@ -10,6 +10,9 @@ telex: telex.c main.c telex.h
 test: telex.c test.c telex.h
 	$(CC) $(CFLAGS) -o $@ telex.c test.c
 
+im-loop: examples/im-loop.c telex.c telex.h
+	$(CC) $(CFLAGS) -I. -o examples/im-loop examples/im-loop.c telex.c
+
 check: test
 	./test
 
@@ -17,6 +20,6 @@ stress: telex.c telex.h stress.py
 	python3 stress.py
 
 clean:
-	rm -f telex test
+	rm -f telex test examples/im-loop
 
-.PHONY: all check stress clean
+.PHONY: all check stress im-loop clean

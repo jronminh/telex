@@ -1,4 +1,5 @@
 telex
 test
 libtelex.so
+examples/im-loop
 __pycache__/
