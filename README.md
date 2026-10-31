@@ -1,8 +1,11 @@
 # telex
 
-A small, pure-C Telex engine for a US keyboard. It has no Wayland or
-input-method code: it turns letters into the current Vietnamese word, and the
-caller decides how to deliver that word.
+A small, pure-C Telex engine for a US keyboard.
+
+Two files (`telex.c`, `telex.h`), no dependency but libc, MIT licensed. Drop
+them into a project and call the API; nothing here knows about Wayland, X11,
+keyboards or input methods. It turns letters into the current Vietnamese word
+and the caller decides how to deliver that word.
 
 ```sh
 make check
@@ -17,6 +20,17 @@ rhyme x tone, meaningless words included), keeps the 10 000 longest, and
 converts each one from every key sequence that spells it: free modifier
 order, free tone position, uppercase. The 58 000 checks must all agree with
 the canonical spelling.
+
+## Using it in another project
+
+```sh
+cp telex.c telex.h /path/to/project/
+cc -O2 -std=c11 main.c telex.c -o app
+```
+
+The engine is a pure function over a key sequence (`telex_convert`) plus a
+small incremental wrapper (`telex_key`, `telex_backspace`, `telex_flush`) for
+line editors and input methods. See `telex.h` for the six entry points.
 
 ## API
 
