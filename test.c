@@ -235,6 +235,14 @@ int main(void)
 	check_word("chooongf", "chòong", 0);
 	check_word("gooongf", "gòong", 0);
 	check_word("dduowcj", "được", 0);
+	check_word("khongo", "không", 0);
+	check_word("khoong", "không", 0);
+	check_word("khongof", "khồng", 0);
+	check_word("duongwf", "dường", 0);
+	check_word("thuongw", "thương", 0);
+	check_word("khongw", "khơng", 0);
+	check_word("banw", "băn", 0);
+	check_word("hoao", "hoao", 0);
 	check_word("gieengs", "giếng", 0);
 	check_word("AS", "Á", 0);
 

@@ -39,6 +39,24 @@ contains a Vietnamese mark. `telex_backspace()` edits the current word.
 - A word that does not look like a Vietnamese syllable is returned as the raw
   US keys (`hello`, `fast`, `book`, `world`).
 
+## Modifier order
+
+A modifier does not have to touch the vowel it completes. The engine looks
+back through the syllable for the matching vowel (stopping at another vowel),
+so all of these complete the same word:
+
+```text
+khoong   không
+khongo   không
+khongof  khồng
+duongwf  dường
+thuongw  thương
+```
+
+If applying the modifier would not make a plausible syllable, the key stays
+literal: `oeo` is a new vowel, not an `ô` modifier, and `hoao` stays raw.
+
+
 ## Limits
 
 - Telex always converts a plausible syllable. English words that happen to be

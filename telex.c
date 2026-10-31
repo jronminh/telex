@@ -189,9 +189,38 @@ static int has_vowel(const Word *w)
 	return 0;
 }
 
+/* the last vowel with this base (plain or marked) anywhere in the word */
+static int find_vowel(const Word *w, int base, int marked)
+{
+	for (int i = w->n - 1; i >= 0; i--) {
+		int v = w->l[i].vowel;
+		if (v == base || v == marked)
+			return i;
+		if (v >= 0)          /* another vowel: this is a new letter */
+			return -1;
+	}
+	return -1;
+}
+
+/* the last a/o/u vowel, for the w hook/breve */
+static int find_hook_vowel(const Word *w)
+{
+	for (int i = w->n - 1; i >= 0; i--) {
+		int v = w->l[i].vowel;
+		if (v == V_A || v == V_O || v == V_U ||
+		    v == V_AB || v == V_OH || v == V_UH)
+			return i;
+		if (v >= 0)          /* another vowel: this is a new letter */
+			return -1;
+	}
+	return -1;
+}
+
 /*
  * Parse the raw US keys.  This is the whole Telex state machine: a modifier
  * is consumed when it applies, otherwise it is kept as a literal letter.
+ * Modifiers may be away from the vowel they complete (Unikey's free
+ * marking), e.g. "khongo" and "khoong" both make "không".
  */
 static void parse_word(const char *keys, int n, const TelexOptions *opt,
 		       Word *w)
@@ -241,21 +270,25 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 		}
 
 		if (lower == 'w') {
-			if (w->n > 0) {
-				Letter *last = &w->l[w->n - 1];
-				if (last->vowel == V_A) {
-					last->vowel = V_AB;
+			int hi = find_hook_vowel(w);
+			if (hi >= 0) {
+				Letter *target = &w->l[hi];
+				if (target->vowel == V_A) {
+					target->vowel = V_AB;
+					target->upper |= isupper(ch) != 0;
 					continue;
 				}
-				if (last->vowel == V_O) {
-					last->vowel = V_OH;
+				if (target->vowel == V_O) {
+					target->vowel = V_OH;
+					target->upper |= isupper(ch) != 0;
 					continue;
 				}
-				if (last->vowel == V_U) {
-					last->vowel = V_UH;
+				if (target->vowel == V_U) {
+					target->vowel = V_UH;
+					target->upper |= isupper(ch) != 0;
 					continue;
 				}
-			} else if (opt->w_at_begin) {
+			} else if (w->n == 0 && opt->w_at_begin) {
 				add_vowel(w, V_UH, isupper(ch) != 0);
 				continue;
 			}
@@ -264,20 +297,21 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 		}
 
 		if ((lower == 'a' || lower == 'e' || lower == 'o') && w->n > 0) {
-			Letter *last = &w->l[w->n - 1];
 			int base_id = lower == 'a' ? V_A :
 				      lower == 'e' ? V_E : V_O;
 			int circ_id = lower == 'a' ? V_AC :
 				      lower == 'e' ? V_EC : V_OC;
-			if (last->vowel == base_id) {
-				last->vowel = circ_id;
-				last->upper |= isupper(ch) != 0;
-				continue;
-			}
-			if (last->vowel == circ_id) {
+			int idx = find_vowel(w, base_id, circ_id);
+			if (idx >= 0) {
+				Letter *target = &w->l[idx];
+				if (target->vowel == base_id) {
+					target->vowel = circ_id;
+					target->upper |= isupper(ch) != 0;
+					continue;
+				}
 				/* aaa/eee/ooo: undo the mark and add a
 				 * literal letter, so "booong" -> "boong" */
-				last->vowel = base_id;
+				target->vowel = base_id;
 				add_letter(w, ch);
 				continue;
 			}
