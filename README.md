@@ -36,8 +36,12 @@ contains a Vietnamese mark. `telex_backspace()` edits the current word.
   `oe`, `uy` are modern-style options; 2-vowel open words take the first
   vowel, closed words the second; 3-vowel nuclei take the middle.
 - `qu` and `gi` are onsets (`quá`, `già`).
-- A word that does not look like a Vietnamese syllable is returned as the raw
-  US keys (`hello`, `fast`, `book`, `world`).
+- **No spell check by default.** Modifiers are still applied to the letters
+  they match, but a shape that is not a valid Vietnamese syllable is rendered
+  composed instead of being reverted: `khoongo` → `khôngo`,
+  `dduowmjg` → `đượmg`, `fast` → `fát`, `book` → `bôk`.
+- `auto_restore=1` in `TelexOptions` restores the old behaviour: return the
+  raw key sequence when the word is not valid.
 
 ## Modifier order
 
@@ -71,8 +75,10 @@ engine (use `preedit=on` if that matters).
 
 The last example is deliberately out of order: `w` hooks the `u`, the `o`
 next to the now-hooked `ư` becomes `ơ`, the later `d` completes the onset
-`d` to `đ`, and `j` is the tone. The engine tries a completion and keeps it
-only if the syllable is valid; otherwise the key is a literal letter.
+`d` to `đ`, and `j` is the tone. A modifier is applied when it can complete
+a letter; if it cannot, it stays a literal letter. The final word is rendered
+even when it is not a valid syllable (no spell check), unless
+`auto_restore=1`.
 
 One `w` is enough; it targets the last `a/o/u` in the current vowel group,
 even when another vowel follows (`goi` + `w` + `j`). `ww` is not needed.
@@ -90,9 +96,9 @@ marked valid syllable. This is what handles hard out-of-order inputs such as
 
 ## Limits
 
-- Telex always converts a plausible syllable. English words that happen to be
-  valid Vietnamese syllables still convert: `this` → `thí`, `test` → `tét`.
-  The caller needs an English/Vietnamese toggle (the next step in tapkeys).
+- There is no spell check: English-like input gets Vietnamese marks when a
+  modifier matches (`fast` → `fát`). The caller needs an English/Vietnamese
+  toggle; `auto_restore=1` is the raw-key fallback for tools that prefer it.
 - No VNI, VIQR, macros, custom keymaps, spelling dictionary, or free-marking
   option; those can come later.
 - The final `đ` is accepted as a letter; other lone consonants stay raw.

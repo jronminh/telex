@@ -119,6 +119,17 @@ static void check_api(void)
 		printf("ok    api empty backspace / non-letter\n");
 	}
 
+	TelexOptions raw = options(0);
+	raw.auto_restore = 1;
+	char rawo[TELEX_MAX_OUT];
+	if (telex_convert("fast", 4, &raw, rawo, sizeof rawo, NULL) < 0 ||
+	    strcmp(rawo, "fast")) {
+		printf("FAIL  api auto_restore -> %s\n", rawo);
+		failures++;
+	} else {
+		printf("ok    api auto_restore -> %s\n", rawo);
+	}
+
 	char tiny[2];
 	if (telex_convert("tieengs", 7, &opt, tiny, sizeof tiny, NULL) != -1) {
 		printf("FAIL  api small output buffer\n");
@@ -156,7 +167,7 @@ int main(void)
 	check_word("ass", "as", 0);
 	check_word("caf", "cà", 0);
 	check_word("cacs", "các", 0);
-	check_word("cacf", "cacf", 0);
+	check_word("cacf", "càc", 0);
 	check_word("quas", "quá", 0);
 	check_word("quyeenr", "quyển", 0);
 	check_word("nguyeenx", "nguyễn", 0);
@@ -262,7 +273,8 @@ int main(void)
 	check_word("goiwjr", "gởi", 0);
 	check_word("hoanw", "hoăn", 0);
 	check_word("dadj", "đạ", 0);
-	check_word("goiwjys", "goiwjys", 0);
+	check_word("goiwjys", "gớiy", 0);
+	check_word("khoongo", "khôngo", 0);
 	check_word("duowng", "dương", 0);
 	check_word("duongw", "dương", 0);
 	check_word("duwong", "dương", 0);
@@ -272,7 +284,7 @@ int main(void)
 	check_word("quyenef", "quyền", 0);
 	check_word("dduowmj", "đượm", 0);
 	check_word("duwomjd", "đượm", 0);
-	check_word("dduowmjg", "dduowmjg", 0);
+	check_word("dduowmjg", "đượmg", 0);
 	check_word("af", "à", 0);
 	check_word("uf", "ù", 0);
 	check_word("uwf", "ừ", 0);
@@ -302,9 +314,9 @@ int main(void)
 
 	/* English that is not a Vietnamese shape */
 	check_word("hello", "hello", 0);
-	check_word("fast", "fast", 0);
-	check_word("book", "book", 0);
-	check_word("world", "world", 0);
+	check_word("fast", "fát", 0);
+	check_word("book", "bôk", 0);
+	check_word("world", "ưởld", 0);
 
 	/* English that happens to be a valid Vietnamese syllable */
 	check_word("the", "the", 0);

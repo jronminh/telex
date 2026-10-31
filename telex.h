@@ -20,7 +20,8 @@
 
 typedef struct {
 	int modern_style;  /* hoà/khoẻ/thuỷ instead of hòa/khỏe/thủy */
-	int spell_check;   /* only accept plausible Vietnamese syllables */
+	int spell_check;   /* only apply marks to plausible syllables */
+	int auto_restore;  /* 1: return raw keys for an invalid word (default 0) */
 	int w_at_begin;    /* a leading w becomes ư (Unikey's option) */
 } TelexOptions;
 

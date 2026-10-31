@@ -786,6 +786,20 @@ static bool search_word(const char *keys, int n, const TelexOptions *opt,
 	return best_idx >= 0;
 }
 
+static int loose_tone_pos(const Word *w)
+{
+	int fallback = -1;
+	for (int i = w->n - 1; i >= 0; i--) {
+		if (w->l[i].vowel < 0)
+			continue;
+		if (is_marked_id(w->l[i].vowel))
+			return i;
+		if (fallback < 0)
+			fallback = i;
+	}
+	return fallback;
+}
+
 int telex_convert(const char *keys, int n, const TelexOptions *opt,
 		  char *out, size_t outsz, int *marked)
 {
@@ -810,18 +824,33 @@ int telex_convert(const char *keys, int n, const TelexOptions *opt,
 				}
 			}
 		}
-		size_t k = 0;
-		for (int i = 0; i < n; i++) {
-			if (w.drop[i])
-				continue;
-			if (k + 1 >= outsz)
-				return -1;
-			out[k++] = keys[i];
+		if (opt->auto_restore) {
+			size_t k = 0;
+			for (int i = 0; i < n; i++) {
+				if (w.drop[i])
+					continue;
+				if (k + 1 >= outsz)
+					return -1;
+				out[k++] = keys[i];
+			}
+			out[k] = '\0';
+			if (marked)
+				*marked = 0;
+			return (int)k;
 		}
-		out[k] = '\0';
+		/* no spell check: keep the composed letters even when the
+		 * shape is not a Vietnamese syllable */
+		int has = w.tone != 0;
+		for (int i = 0; i < w.n; i++)
+			if ((w.l[i].vowel >= 0 && is_marked_id(w.l[i].vowel)) ||
+			    (w.l[i].base == 'd' && w.l[i].mark == 4))
+				has = 1;
+		int len = render(&w, loose_tone_pos(&w), out, outsz);
+		if (len < 0)
+			return -1;
 		if (marked)
-			*marked = 0;
-		return (int)k;
+			*marked = has;
+		return len;
 	}
 	int len = render(&w, tp, out, outsz);
 	if (len < 0)
@@ -839,6 +868,7 @@ void telex_init(Telex *t, const TelexOptions *opt)
 	} else {
 		t->opt.modern_style = 0;
 		t->opt.spell_check = 1;
+		t->opt.auto_restore = 0;
 		t->opt.w_at_begin = 1;
 	}
 }
