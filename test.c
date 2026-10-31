@@ -281,6 +281,7 @@ int main(void)
 	/* whole lines */
 	check_line("Tooi muoons ddi hocj", "Tôi muốn đi học", 0);
 	check_line("tieengs vieetj", "tiếng việt", 0);
+	check_line("goiwj ys", "gợi ý", 0);
 
 	check_api();
 

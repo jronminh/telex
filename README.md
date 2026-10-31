@@ -54,7 +54,11 @@ thuongw  thương
 goiwj    gợi
 goiwr    gởi
 duwodjc  được
+goiwj ys gợi ý
 ```
+
+A word boundary (space or punctuation) is still required: `goiwjys` is one
+invalid word, so it stays raw.
 
 The last example is deliberately out of order: `w` hooks the `u`, the `o`
 next to the now-hooked `ư` becomes `ơ`, the later `d` completes the onset
