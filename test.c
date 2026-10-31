@@ -274,7 +274,10 @@ int main(void)
 	check_word("hoanw", "hoăn", 0);
 	check_word("dadj", "đạ", 0);
 	check_word("goiwjys", "gớiy", 0);
-	check_word("khoongo", "khôngo", 0);
+	check_word("khoongo", "khongo", 0);
+	check_word("boongo", "bongo", 0);
+	check_word("khoong", "không", 0);
+	check_word("khongo", "không", 0);
 	check_word("uww", "uw", 0);
 	check_word("aww", "aw", 0);
 	check_word("oww", "ow", 0);

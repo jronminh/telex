@@ -38,7 +38,7 @@ contains a Vietnamese mark. `telex_backspace()` edits the current word.
 - `qu` and `gi` are onsets (`quá`, `già`).
 - **No spell check by default.** Modifiers are still applied to the letters
   they match, but a shape that is not a valid Vietnamese syllable is rendered
-  composed instead of being reverted: `khoongo` → `khôngo`,
+  composed instead of being reverted: `khoongo` → `khongo`,
   `dduowmjg` → `đượmg`, `fast` → `fát`, `book` → `bôk`.
 - `auto_restore=1` in `TelexOptions` restores the old behaviour: return the
   raw key sequence when the word is not valid.
@@ -85,9 +85,9 @@ otherwise English words such as `uw`, `aw`, `ow` are impossible to type
 without switching the input method off. This is also the editing rule: type
 the modifier again to take it back.
 
-An `o` repeated **in place** toggles the roof (`booong` → `boong`), but an
-`o` after a coda stays literal and leaves the existing roof alone:
-`khoongo` → `khôngo`.
+An `o` repeated toggles the roof, wherever the roofed vowel is: `booong` →
+`boong`, and `khoongo` → `khongo` (the extra key removes the roof *and* stays
+literal, so `khongo` is typeable). `khong` and `khoong` both give `không`.
 
 In vnime this is the word the engine is composing; moving the caret with
 arrow keys ends it. Mouse-clicking into an older word is not tracked by the

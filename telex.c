@@ -338,10 +338,11 @@ static void parse_word(const char *keys, int n, const TelexOptions *opt,
 						target->upper |= isupper(ch) != 0;
 						continue;
 					}
-				} else if (idx == w->n - 1) {
-					/* in place aaa/eee/ooo: undo the mark and
-					 * add a literal letter; when the roof is
-					 * far away (khoongo), keep it */
+				} else {
+					/* the roof key again: undo the mark and
+					 * keep this key as a literal letter, so
+					 * aaa -> aa, booong -> boong, and
+					 * khoongo -> khongo */
 					target->vowel = base_id;
 					add_letter(w, ch);
 					continue;
